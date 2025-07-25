@@ -1,0 +1,22 @@
+#!/bin/sh -e
+
+# Extract locs file path,
+# and convert it to absolute path.
+LOCS_FILE=$(realpath "$1")
+shift
+
+# Convert remaining args to absolute paths
+FPP_FILES=""
+for arg in "$@"; do
+  FPP_FILES="$FPP_FILES $(realpath "$arg")"
+done
+
+# Generate comma-separated list of dependencies
+DEPS=$(fpp-depend "$LOCS_FILE" $FPP_FILES | paste -sd ',' -)
+
+# Go to fpp-to-phaser root.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+# Call fpp-to-phaser with -i "$DEPS" and the remaining arguments
+sbt "run -i $DEPS $FPP_FILES"

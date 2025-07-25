@@ -1,4 +1,4 @@
-name := "fprime-phaser"
+name := "fpp-to-phaser"
 ThisBuild / organization := "gov.nasa.jpl"
 ThisBuild / scalaVersion := "3.1.2"
 
@@ -23,18 +23,12 @@ lazy val dependencies = Seq(
   "org.scalatest" %% "scalatest" % "3.2.12" % "test",
 )
 
-lazy val root = project
+lazy val fpp_to_phaser = project
   .in(file("."))
   .settings(settings)
-  .aggregate(
-    lib,
-    // fpp_to_phaser
-  )
+  .dependsOn(lib)
+  .enablePlugins(AssemblyPlugin)
 
 lazy val lib = (project in file("fpp/compiler/lib"))
   .settings(settings)
 
-// lazy val fpp_to_phaser = (project in file("src"))
-//   .settings(settings)
-//   .dependsOn(lib)
-//   .enablePlugins(AssemblyPlugin)

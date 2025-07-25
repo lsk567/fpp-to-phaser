@@ -1,0 +1,3 @@
+[submodule "fpp"]
+	path = fpp
+	url = https://github.com/nasa/fpp.git

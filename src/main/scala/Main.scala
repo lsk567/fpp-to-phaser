@@ -70,6 +70,8 @@ object FPPToPhaser {
           pa.periodMap.foreach { case (key, value) => println(s"$key -> $value") }
           println("Offset map:")
           pa.offsetMap.foreach { case (key, value) => println(s"$key -> $value") }
+          println("Deadline map:")
+          pa.deadlineMap.foreach { case (key, value) => println(s"$key -> $value") }
         }
         result
       }

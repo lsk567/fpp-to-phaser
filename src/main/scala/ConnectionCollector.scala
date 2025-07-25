@@ -34,11 +34,7 @@ object ConnectionCollector extends AstStateVisitor {
 
     for {
       // Locate the semantic version of topology.
-      symbol <- {
-        println(s"Topology found in topology.fpp: ${data.name}")
-        Right(Symbol.Topology(aNode))
-      }
-      topology <- Right(s.analysis.topologyMap(symbol))
+      topology <- Right(s.analysis.topologyMap(Symbol.Topology(aNode)))
       // Find all connections from rate groups.
       rateGroupConnections <- Right {
         topology.connectionMap.values.flatten.toList.filter(

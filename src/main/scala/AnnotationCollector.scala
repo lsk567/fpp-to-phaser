@@ -31,36 +31,60 @@ object AnnotationCollector extends AstStateVisitor {
     val node = aNode._2
     val postNotations = aNode._3
     for {
-      s <- {
-        postNotations.foldLeft[Result.Result[State]](Right(s)) {
-          case (acc, str) =>
-            acc.flatMap { state =>
-              (PeriodParser.parse(str), OffsetParser.parse(str)) match {
-                case (Right(period), _) =>
-                  println(s"Period parsed: $period")
-                  val periodMap = s.periodMap + (Symbol.ComponentInstance(aNode) -> period)
-                  Right(state.copy(periodMap = periodMap))
-                case (_, Right(offset)) =>
-                  println(s"Offset parsed: $offset")
-                  val offsetMap = state.offsetMap + (Symbol.ComponentInstance(aNode) -> offset)
-                  Right(state.copy(offsetMap = offsetMap))
-                case (Left(err1), Left(err2)) =>
-                  println(s"Failed to parse: $str")
-                  println(s"Errors: $err1 | $err2")
-                  Right(state)
-              }
+      s <- postNotations.foldLeft[Result.Result[State]](Right(s)) {
+        case (acc, str) =>
+          acc.flatMap { state =>
+            (PeriodParser.parse(str), OffsetParser.parse(str)) match {
+              case (Right(period), _) =>
+                println(s"Period parsed: $period")
+                val periodMap = s.periodMap + (Symbol.ComponentInstance(aNode) -> period)
+                Right(state.copy(periodMap = periodMap))
+              case (_, Right(offset)) =>
+                println(s"Offset parsed: $offset")
+                val offsetMap = state.offsetMap + (Symbol.ComponentInstance(aNode) -> offset)
+                Right(state.copy(offsetMap = offsetMap))
+              case (Left(err1), Left(err2)) =>
+                println(s"Failed to parse: $str")
+                println(s"Errors: $err1 | $err2")
+                Right(state)
             }
-        }
+          }
       }
     } yield s
+  }
+
+  override def defTopologyAnnotatedNode(
+    s: State, aNode: Ast.Annotated[AstNode[Ast.DefTopology]]
+  ) = {
+    val node = aNode._2
+    val data = node.data
+    visitList(s, data.members, matchTopologyMember)
   }
 
   override def specConnectionGraphAnnotatedNode(
     s: State, aNode: Ast.Annotated[AstNode[Ast.SpecConnectionGraph]]
   ) = {
+    val preAnnotations = aNode._1
     val node = aNode._2
     val data = node.data
-    Right(s)
+    for {
+      s <- {
+        if (preAnnotations.length > 0) {
+          println("Connection annotation found: " + preAnnotations)
+        }
+        // Keep the successfully parsed annotations
+        // and collect the deadline values in a list.
+        val deadlines = preAnnotations
+                        .map(DeadlineParser.parse)
+                        .collect { case Right(deadline) => deadline }
+        // Populate the deadline map.
+        Right {
+          deadlines.foldLeft (s) { (s, deadline) => 
+            s.copy(deadlineMap = s.deadlineMap + (deadline._1 -> deadline._2))
+          }
+        }
+      }
+    } yield s
   }
 
 }

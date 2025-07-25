@@ -52,19 +52,21 @@ object DeadlineParser extends RegexParsers {
 
   override def skipWhitespace = true
 
+  def qualifiedName: Parser[String] = """[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+""".r
+
   def number: Parser[BigInt] = "[0-9]+".r ^^ { s => BigInt(s) }
 
   def unit: Parser[String] = "(ms|us|ns)".r
 
-  def time: Parser[Time] = ("!" ~> "deadline" ~> number ~ unit) ^^ {
-    case value ~ "ms" => MS(value)
-    case value ~ "us" => US(value)
-    case value ~ "ns" => NS(value)
+  def deadline: Parser[(String, Time)] = ("!" ~> "deadline" ~> qualifiedName ~ number ~ unit) ^^ {
+    case port ~ value ~ "ms" => (port, MS(value))
+    case port ~ value ~ "us" => (port, US(value))
+    case port ~ value ~ "ns" => (port, NS(value))
     case _ => throw new Exception("Invalid time unit") // should never reach here due to regex
   }
 
-  def parse(input: String): Either[String, Time] = {
-    parseAll(time, input) match {
+  def parse(input: String): Either[String, (String, Time)] = {
+    parseAll(deadline, input) match {
       case Success(result, _) => Right(result)
       case _ => Left(s"Failed to parse offset: $input")
     }

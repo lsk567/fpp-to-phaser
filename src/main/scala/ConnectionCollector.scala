@@ -4,22 +4,9 @@ import fpp.compiler.ast._
 import fpp.compiler.ast.Ast.SpecConnectionGraph
 import fpp.compiler.util._
 
-case class RateGroupState(
-    // Analysis object from CheckSemantics
-    analysis: Analysis = Analysis(),
-    // Map from a rate group instance name to its period.
-    periodMap: Map[Symbol.ComponentInstance, Time] = Map(),
-    // Map from a rate group instance name to its offset.
-    offsetMap: Map[Symbol.ComponentInstance, Time] = Map(),
-    // Map from a rate group instance to a list of tuples,
-    // each of which is a downstream port being called
-    // within a period and the output Sched port channel index.
-    taskMap: Map[Symbol.ComponentInstance, List[(Connection.Endpoint, Int)]] = Map()
-)
+object ConnectionCollector extends AstStateVisitor {
 
-object RateGroupVisitor extends AstStateVisitor {
-
-  type State = RateGroupState
+  type State = PhaserAnalysis
 
   override def transUnit(s: State, tu: Ast.TransUnit): Result.Result[State] =
     visitList(s, tu.members, matchTuMember)
@@ -102,44 +89,6 @@ object RateGroupVisitor extends AstStateVisitor {
       s <- visitList(s, data.members, matchTopologyMember)
     }
     yield s
-  }
-
-  override def defComponentInstanceAnnotatedNode(
-    s: State, aNode: Ast.Annotated[AstNode[Ast.DefComponentInstance]]
-  ) = {
-    val node = aNode._2
-    val postNotations = aNode._3
-    for {
-      s <- {
-        postNotations.foldLeft[Result.Result[State]](Right(s)) {
-          case (acc, str) =>
-            acc.flatMap { state =>
-              (PeriodParser.parse(str), OffsetParser.parse(str)) match {
-                case (Right(period), _) =>
-                  println(s"Period parsed: $period")
-                  val periodMap = s.periodMap + (Symbol.ComponentInstance(aNode) -> period)
-                  Right(state.copy(periodMap = periodMap))
-                case (_, Right(offset)) =>
-                  println(s"Offset parsed: $offset")
-                  val offsetMap = state.offsetMap + (Symbol.ComponentInstance(aNode) -> offset)
-                  Right(state.copy(offsetMap = offsetMap))
-                case (Left(err1), Left(err2)) =>
-                  println(s"Failed to parse: $str")
-                  println(s"Errors: $err1 | $err2")
-                  Right(state)
-              }
-            }
-        }
-      }
-    } yield s
-  }
-
-  override def specConnectionGraphAnnotatedNode(
-    s: State, aNode: Ast.Annotated[AstNode[Ast.SpecConnectionGraph]]
-  ) = {
-    val node = aNode._2
-    val data = node.data
-    Right(s)
   }
 
 }

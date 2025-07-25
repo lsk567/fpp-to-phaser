@@ -61,22 +61,21 @@ object FPPToPhaser {
       a <- CheckSemantics.tuList(a, tulFiles ++ tulImports)
 
       // Extract all rate group info from instance.fpp and annotations.
-      _ <- {
-        val dir = options.dir match {
-          case Some(dir1) => dir1
-          case None => "."
-        }
-        val s = RateGroupState(analysis = a)
-        val result = RateGroupVisitor.tuList(s, tulFiles)
+      pa <- {
+        val pa = PhaserAnalysis(analysis = a)
+        val result = AnnotationCollector.tuList(pa, tulFiles)
         // Print state maps to sanity check.
-        // Use map() here to ensure the Result monad is returned.
-        result.map { s =>
+        result.map { pa =>
           println("Period map:")
-          s.periodMap.foreach { case (key, value) => println(s"$key -> $value") }
+          pa.periodMap.foreach { case (key, value) => println(s"$key -> $value") }
           println("Offset map:")
-          s.offsetMap.foreach { case (key, value) => println(s"$key -> $value") }
+          pa.offsetMap.foreach { case (key, value) => println(s"$key -> $value") }
         }
+        result
       }
+
+      // Collect all rate group connections.
+      pa <- ConnectionCollector.tuList(pa, tulFiles)
 
       // Compute SSFA by unrolling rate group execution.
 

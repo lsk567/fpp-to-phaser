@@ -61,22 +61,22 @@ object FPPToPhaser {
       a <- CheckSemantics.tuList(a, tulFiles ++ tulImports)
 
       // Extract all rate group info from instance.fpp and annotations.
-      // _ <- {
-      //   val dir = options.dir match {
-      //     case Some(dir1) => dir1
-      //     case None => "."
-      //   }
-      //   val s = RateGroupState(analysis = a)
-      //   val result = RateGroupVisitor.tuList(s, tulFiles)
-      //   // Print state maps to sanity check.
-      //   // Use map() here to ensure the Result monad is returned.
-      //   result.map { s =>
-      //     println("Period map:")
-      //     s.periodMap.foreach { case (key, value) => println(s"$key -> $value") }
-      //     println("Offset map:")
-      //     s.offsetMap.foreach { case (key, value) => println(s"$key -> $value") }
-      //   }
-      // }
+      _ <- {
+        val dir = options.dir match {
+          case Some(dir1) => dir1
+          case None => "."
+        }
+        val s = RateGroupState(analysis = a)
+        val result = RateGroupVisitor.tuList(s, tulFiles)
+        // Print state maps to sanity check.
+        // Use map() here to ensure the Result monad is returned.
+        result.map { s =>
+          println("Period map:")
+          s.periodMap.foreach { case (key, value) => println(s"$key -> $value") }
+          println("Offset map:")
+          s.offsetMap.foreach { case (key, value) => println(s"$key -> $value") }
+        }
+      }
 
       // Compute SSFA by unrolling rate group execution.
 

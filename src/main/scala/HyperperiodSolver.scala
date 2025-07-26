@@ -8,10 +8,44 @@ object HyperperiodSolver {
     type PortCall = (Symbol.ComponentInstance, PortInstanceIdentifier)
 
     /**
-      * A step consists of a timestamp, a set of port calls,
-      * a map of future timestamps to future port calls. 
+      * A step consists of three elements:
+      * 1. a current timestamp,
+      * 2. a set of current port calls,
+      * 3. a map from future timestamps to future port calls. 
       */
     type Step = (Time, Set[PortCall], Map[Time, Set[PortCall]])
+
+    /**
+      * Find initial offsets of all rate groups, and add them
+      * to the step's future port call map.
+      *
+      * @param analysis
+      * @return
+      */
+    def initStep(analysis: PhaserAnalysis): Step = {
+        // FIXME: Assume all rate groups have @period labels.
+        // This needs to be more robust by having a rate group list
+        // in the phaser analysis.
+        val rateGroups = analysis.offsetMap.keys
+        val offsets = rateGroups.map(rg =>
+            (rg, analysis.offsetMap.getOrElse(rg, ZERO)))
+        val map = offsets.foldLeft
+            (Map[Time, Set[PortCall]]())
+            ((m, offset) => {
+                val (rg, o) = offset
+                // A list of port calls made by the rate group
+                val calls: List[PortCall] =
+                    analysis.taskMap(rg).map(tup => {
+                        val (endpoint, _) = tup
+                        (rg, endpoint.port)
+                    })
+                m.updatedWith(o) {
+                    case Some(set) => Some(set.union(calls.toSet))
+                    case None => Some(calls.toSet)
+                }
+            })
+        (ZERO, Set(), map)
+    }
 
     @annotation.tailrec
     def solve(

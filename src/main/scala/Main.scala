@@ -80,6 +80,19 @@ object FPPToPhaser {
       pa <- ConnectionCollector.tuList(pa, tulFiles)
 
       // Compute SSFA by unrolling rate group execution.
+      hp <- {
+        val initStep = HyperperiodSolver.initStep(pa)
+        val hp = HyperperiodSolver.solve
+          (pa, initStep, List())
+          (HyperperiodSolver.next, HyperperiodSolver.hpCheck)
+        println("Hyperperiod: ")
+        println(hp)
+        Right(hp)
+      }
+
+      // Partition the schedule using a list scheduler.
+
+      // Validate the schedule.
 
       // Generate phaser configurations.
 

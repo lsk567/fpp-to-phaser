@@ -19,6 +19,10 @@ case class NS(value: BigInt) extends Time {
   def toNanoseconds: BigInt = value
 }
 
+case object ZERO extends Time {
+  def toNanoseconds: BigInt = 0
+}
+
 object Time {
   implicit val timeOrdering: Ordering[Time] = Ordering.by(_.toNanoseconds)
 

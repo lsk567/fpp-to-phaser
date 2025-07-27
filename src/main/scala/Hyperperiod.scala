@@ -2,7 +2,7 @@ package fpp.compiler.analysis
 
 import fpp.compiler.ast._
 
-object HyperperiodSolver {
+object Hyperperiod {
 
     /** A port call consists of a rate group (caller) and a port instance (callee). */
     type PortCall = (Symbol.ComponentInstance, PortInstanceIdentifier)

@@ -84,20 +84,23 @@ object FPPToPhaser {
 
       // Compute SSFA by unrolling rate group execution.
       hp <- {
-        val initStep = HyperperiodSolver.initStep(pa)
-        val hp = HyperperiodSolver.solve
+        val initStep = Hyperperiod.initStep(pa)
+        val hp = Hyperperiod.solve
           (pa, initStep, List())
-          (HyperperiodSolver.next, HyperperiodSolver.hpCheck)
+          (Hyperperiod.next, Hyperperiod.hpCheck)
         println("Hyperperiod: ")
         println(hp)
         Right(hp)
       }
       _ <- {
-        val dot = HyperperiodSolver.toDot(hp)
+        val dot = Hyperperiod.toDot(hp)
         println("Writing hyperperiod.dot to " + System.getProperty("user.dir"))
         Files.write(Paths.get("hyperperiod.dot"), dot.getBytes(StandardCharsets.UTF_8))
         Right(())
       }
+
+      // Generate a DAG from the hyperperiod.
+      // FIXME: Assume there is one DAG for now.
 
       // Partition the schedule using a list scheduler.
 

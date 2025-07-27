@@ -58,8 +58,9 @@ object HyperperiodSolver {
     ): (List[Step], Int) = {
         hpCheck(current, trace) match {
             case Some(index) =>
-                val fullTrace = (current :: trace).reverse
-                (fullTrace, index)
+                // Reverse the trace at the end since current steps
+                // are added to the front of the list.
+                ((current :: trace).reverse, index)
             case None =>
                 solve(analysis, next(analysis, current), current :: trace)(next, hpCheck)
         }
@@ -116,7 +117,7 @@ object HyperperiodSolver {
     def hpCheck(step: Step, trace: List[Step]): Option[Int] = {
         val (t, calls, m) = step
 
-        trace.zipWithIndex.find { case ((tPrev, callsPrev, mPrev), idx) =>
+        val recurIndex = trace.zipWithIndex.find { case ((tPrev, callsPrev, mPrev), idx) =>
             // First check if the current port calls match the previous step's port calls
             if (calls != callsPrev) false
             else {
@@ -130,10 +131,17 @@ object HyperperiodSolver {
                 normM == normMPrev
             }
         }.map(_._2) // Return the index of the matching step
+
+        recurIndex match {
+            // Since the input trace is reversed, when an index is found,
+            // the index needs to be flipped. 
+            case Some(idx) => Some(trace.length - 1 - idx)
+            case None => None
+        }
     }
     
     def toDot(hyperperiod: (List[Step], Int)): String = {
-        val (trace, recurrenceStart) = hyperperiod
+        val (trace, recurIndex) = hyperperiod
         val sb = new StringBuilder
         sb ++= "digraph Hyperperiod {\n"
         sb ++= "  rankdir=LR;\n"
@@ -154,8 +162,8 @@ object HyperperiodSolver {
         }
 
         // Loop back to indicate recurrence
-        if (recurrenceStart < trace.length - 1) {
-            sb ++= s"""  s${trace.length - 1} -> s$recurrenceStart [style=dashed, label="recurs"];\n"""
+        if (recurIndex <= trace.length - 1) {
+            sb ++= s"""  s${trace.length - 1} -> s$recurIndex [style=dashed, label="recurs"];\n"""
         }
 
         sb ++= "}\n"

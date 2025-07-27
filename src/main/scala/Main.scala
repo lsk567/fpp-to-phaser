@@ -101,6 +101,15 @@ object FPPToPhaser {
 
       // Generate a DAG from the hyperperiod.
       // FIXME: Assume there is one DAG for now.
+      dag <- Right(Dag.fromHyperperiod(pa, hp._1, hp._2))
+      _ <- {
+        println("Print edges")
+        println(dag.edges)
+        val dot = dag.toDot
+        println("Writing dag.dot to " + System.getProperty("user.dir"))
+        Files.write(Paths.get("dag.dot"), dot.getBytes(StandardCharsets.UTF_8))
+        Right(())
+      }
 
       // Partition the schedule using a list scheduler.
 

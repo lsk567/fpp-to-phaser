@@ -97,32 +97,43 @@ object Dag {
     // Mutable variable to track previous time node
     var prevTimeNode: Option[Dag.TimeNode] = None
 
-    for ((time, calls, _) <- steps) {
+    // Track the last task node seen for each rate group
+    val lastTaskByRateGroup = scala.collection.mutable.Map.empty[Symbol.ComponentInstance, Dag.TaskNode]
+
+    for (((time, calls, _), stepIdx) <- steps.zipWithIndex) {
       // Create a time node for this step
       val timeNode = Dag.TimeNode(time)
 
       // Extract rate groups from the port calls
       val rateGroups = calls.map(_._1)
 
-      for (rg <- rateGroups) {
-        // Lookup task list for this rate group
-        val tasks = analysis.taskMap.getOrElse(rg, Nil)
+      if (stepIdx != steps.length - 1) {
+        for (rg <- rateGroups) {
+          // Lookup task list for this rate group
+          val tasks = analysis.taskMap.getOrElse(rg, Nil)
 
-        // Create task nodes for each endpoint
-        val taskNodes = tasks.map { case (ep, _) => Dag.TaskNode(ep, time) }
+          // Create task nodes for each endpoint
+          val taskNodes = tasks.map { case (ep, _) => Dag.TaskNode(ep, time) }
 
-        // Connect timeNode to the first task node, if any
-        taskNodes.headOption.foreach { head =>
-          val targets = edges.getOrElseUpdate(timeNode, scala.collection.mutable.Set.empty)
-          targets += head
-        }
+          // Connect timeNode to the first task node, if any
+          taskNodes.headOption.foreach { head =>
+            edges.getOrElseUpdate(timeNode, scala.collection.mutable.Set.empty) += head
+          }
 
-        // Connect taskNodes in sequence: t1 -> t2 -> ...
-        for (i <- 0 until taskNodes.length - 1) {
-          val from = taskNodes(i)
-          val to = taskNodes(i + 1)
-          val targets = edges.getOrElseUpdate(from, scala.collection.mutable.Set.empty)
-          targets += to
+          // Connect taskNodes in sequence: t1 -> t2 -> ...
+          for (i <- 0 until taskNodes.length - 1) {
+            val from = taskNodes(i)
+            val to = taskNodes(i + 1)
+            edges.getOrElseUpdate(from, scala.collection.mutable.Set.empty) += to
+          }
+
+          // Add deadline edge: last task node of previous firing → this time node
+          lastTaskByRateGroup.get(rg).foreach { prevTask =>
+            edges.getOrElseUpdate(prevTask, scala.collection.mutable.Set.empty) += timeNode
+          }
+
+          // Update last task for this rate group
+          taskNodes.lastOption.foreach(lastTask => lastTaskByRateGroup(rg) = lastTask)
         }
       }
 
@@ -131,15 +142,23 @@ object Dag {
         val dummy = Dag.DummyNode(prev.time, time)
 
         // Do not reuse dummy nodes — always insert new one per pair
-        val set1 = edges.getOrElseUpdate(prev, scala.collection.mutable.Set.empty)
-        set1 += dummy
-
-        val set2 = edges.getOrElseUpdate(dummy, scala.collection.mutable.Set.empty)
-        set2 += timeNode
+        edges.getOrElseUpdate(prev, scala.collection.mutable.Set.empty) += dummy
+        edges.getOrElseUpdate(dummy, scala.collection.mutable.Set.empty) += timeNode
       }
 
       // Update previous time node
       prevTimeNode = Some(timeNode)
+    }
+
+    // Patch in deadline edges for any remaining tasks
+    prevTimeNode.foreach { lastTimeNode =>
+      for ((_, taskNode) <- lastTaskByRateGroup) {
+        val existingEdges = edges.getOrElse(taskNode, scala.collection.mutable.Set.empty)
+        if (!existingEdges.contains(lastTimeNode)) {
+          existingEdges += lastTimeNode
+          edges.update(taskNode, existingEdges)
+        }
+      }
     }
 
     // Convert to immutable Map[Node, Set[Node]] for the final DAG

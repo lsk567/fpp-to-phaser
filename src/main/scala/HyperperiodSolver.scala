@@ -131,5 +131,35 @@ object HyperperiodSolver {
             }
         }.map(_._2) // Return the index of the matching step
     }
-        
+    
+    def toDot(hyperperiod: (List[Step], Int)): String = {
+        val (trace, recurrenceStart) = hyperperiod
+        val sb = new StringBuilder
+        sb ++= "digraph Hyperperiod {\n"
+        sb ++= "  rankdir=LR;\n"
+
+        // Create nodes
+        for ((step, idx) <- trace.zipWithIndex) {
+            val (t, calls, _) = step
+            val labelCalls = calls.map { case (rg, port) =>
+            s"${rg.getUnqualifiedName}→${port.toString}"
+            }.mkString("\\n")
+
+            sb ++= s"""  s$idx [label="t=${t.toNanoseconds}ns\\n$labelCalls"];\n"""
+        }
+
+        // Create edges
+        for (idx <- 0 until trace.length - 1) {
+            sb ++= s"  s$idx -> s${idx + 1};\n"
+        }
+
+        // Loop back to indicate recurrence
+        if (recurrenceStart < trace.length - 1) {
+            sb ++= s"""  s${trace.length - 1} -> s$recurrenceStart [style=dashed, label="recurs"];\n"""
+        }
+
+        sb ++= "}\n"
+        sb.toString
+    }
+
 }

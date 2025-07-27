@@ -8,6 +8,9 @@ import fpp.compiler.transform._
 import fpp.compiler.util._
 import scopt.OParser
 
+import java.nio.file.{Files, Paths}
+import java.nio.charset.StandardCharsets
+
 object FPPToPhaser {
 
   case class Options(
@@ -88,6 +91,12 @@ object FPPToPhaser {
         println("Hyperperiod: ")
         println(hp)
         Right(hp)
+      }
+      _ <- {
+        val dot = HyperperiodSolver.toDot(hp)
+        println("Writing hyperperiod.dot to " + System.getProperty("user.dir"))
+        Files.write(Paths.get("hyperperiod.dot"), dot.getBytes(StandardCharsets.UTF_8))
+        Right(())
       }
 
       // Partition the schedule using a list scheduler.

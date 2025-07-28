@@ -100,6 +100,98 @@ class Dag(val edges: Map[Dag.Node, Set[Dag.Node]]) {
     sb.toString
   }
 
+  def toDotScheduled(schedule: Schedule): String = {
+    val colors = Array("red", "blue", "green", "orange", "purple", "brown", "pink", "gray", "olive", "cyan")
+    
+    val sb = new StringBuilder
+    sb.append("digraph DAG {\n")
+    sb.append("  rankdir=TB;\n")
+    sb.append("  ranksep=1.5;\n")  // Increased vertical spacing
+    sb.append("  nodesep=0.8;\n")  // Increased horizontal spacing
+
+    // Assign unique names to nodes (same as toDot)
+    val nodeIds = nodes.zipWithIndex.toMap
+
+    // Create a map from node to partition index for coloring
+    val nodeToPartition = schedule.zipWithIndex.flatMap { case (partition, partitionIndex) =>
+      partition.map(node => node -> partitionIndex)
+    }.toMap
+
+    // Emit nodes with partition coloring
+    for (node <- nodes) {
+      val id = nodeIds(node)
+      val label = node match {
+        case Dag.TaskNode(endpoint, time) =>
+          s"${endpoint.port} @ ${time.toNanoseconds}ns"
+        case Dag.TimeNode(time) =>
+          s"time ${time.toNanoseconds}ns"
+        case Dag.DummyNode(from, to) =>
+          s"dummy ${from.toNanoseconds}-${to.toNanoseconds}ns"
+      }
+      
+      // Add color if node is in a partition
+      val colorAttr = node match {
+        case taskNode: Dag.TaskNode =>
+          nodeToPartition.get(taskNode) match {
+            case Some(partitionIndex) =>
+              val color = colors(partitionIndex % colors.length)
+              s""", fillcolor=$color, style=filled"""
+            case None => ""
+          }
+        case _ => ""
+      }
+      
+      sb.append(s"""  n$id [label="$label", shape=box$colorAttr];\n""")
+    }
+
+    // Emit a subgraph for horizontal ranking of TimeNode and DummyNode (same as toDot)
+    val timelineNodes = nodes.collect {
+      case t: Dag.TimeNode => nodeIds(t)
+      case d: Dag.DummyNode => nodeIds(d)
+    }
+
+    if (timelineNodes.nonEmpty) {
+      sb.append("  { rank=same; ")
+      timelineNodes.toList.sorted.foreach(id => sb.append(s"n$id; "))
+      sb.append("}\n")
+    }
+
+    // Create invisible ordering edges within partitions for better vertical stacking
+    schedule.zipWithIndex.foreach { case (partition, partitionIndex) =>
+      if (partition.nonEmpty) {
+        sb.append(s"  // Partition $partitionIndex vertical ordering\n")
+        partition.sliding(2).foreach {
+          case List(from, to) =>
+            val fromId = nodeIds(from)
+            val toId = nodeIds(to)
+            // Add invisible edges to force vertical ordering within partition
+            sb.append(s"  n$fromId -> n$toId [style=invis, weight=10];\n")
+          case _ => // Single element, no ordering needed
+        }
+      }
+    }
+
+    // Emit ALL original DAG edges
+    for ((from, tos) <- edges; to <- tos) {
+      val fromId = nodeIds(from)
+      val toId = nodeIds(to)
+      sb.append(s"  n$fromId -> n$toId;\n")
+    }
+
+    // Emit intra-partition ordering edges (visible colored edges)
+    for ((partition, partitionIndex) <- schedule.zipWithIndex) {
+      val color = colors(partitionIndex % colors.length)
+      for (List(from, to) <- partition.sliding(2)) {
+        val fromId = nodeIds(from)
+        val toId = nodeIds(to)
+        sb.append(s"  n$fromId -> n$toId [color=$color, style=solid, penwidth=2];\n")
+      }
+    }
+
+    sb.append("}\n")
+    sb.toString
+  }
+
 }
 
 object Dag {

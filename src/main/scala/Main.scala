@@ -118,6 +118,9 @@ object FPPToPhaser {
           println(s"Schedule $i:")
           println(s)
         }
+        val dot = dag.toDotScheduled(sched)
+        println("Writing dagS.dot to " + System.getProperty("user.dir"))
+        Files.write(Paths.get("dagS.dot"), dot.getBytes(StandardCharsets.UTF_8))
         Right(())
       }
 

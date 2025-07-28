@@ -2,9 +2,17 @@ package fpp.compiler.analysis
 
 sealed trait Time {
   def toNanoseconds: BigInt
+  def toNS: Time = Time.fromNanoseconds(this.toNanoseconds)
 
   def +(that: Time): Time = Time.fromNanoseconds(this.toNanoseconds + that.toNanoseconds)
   def -(that: Time): Time = Time.fromNanoseconds(this.toNanoseconds - that.toNanoseconds)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: Time => this.toNanoseconds == that.toNanoseconds
+    case _ => false
+  }
+  
+  override def hashCode(): Int = toNanoseconds.hashCode()
 }
 
 case class MS(value: BigInt) extends Time {

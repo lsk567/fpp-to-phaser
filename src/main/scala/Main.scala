@@ -88,8 +88,8 @@ object FPPToPhaser {
         val hp = Hyperperiod.solve
           (pa, initStep, List())
           (Hyperperiod.next, Hyperperiod.hpCheck)
-        println("Hyperperiod: ")
-        println(hp)
+        println("Writing hyperperiod.txt to " + System.getProperty("user.dir"))
+        Files.write(Paths.get("hyperperiod.txt"), hp.toString.getBytes(StandardCharsets.UTF_8))
         Right(hp)
       }
       _ <- {

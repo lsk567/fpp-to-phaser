@@ -1,5 +1,8 @@
 package fpp.compiler.analysis
 
+import scala.collection.mutable
+import scala.util.Random
+
 import fpp.compiler.util._
 
 /**
@@ -10,6 +13,46 @@ class Dag(val edges: Map[Dag.Node, Set[Dag.Node]]) {
 
   /** All nodes in the graph */
   def nodes: Set[Dag.Node] = edges.keySet ++ edges.values.flatten
+
+  /**
+    * If the DAG is valid, return a random valid topological sort.
+    * Randomness is used here so that when a schedule is found invalid,
+    * we can generate another schedule from a different topological sort
+    * using list scheduling.
+    */
+  def randomTopologicalSort: Result.Result[List[Dag.Node]] = {
+    val inDegree = mutable.Map.empty[Dag.Node, Int].withDefaultValue(0)
+    val allNodes = edges.keySet ++ edges.values.flatten
+
+    // Compute in-degrees
+    for {
+      (from, tos) <- edges
+      to <- tos
+    } {
+      inDegree(to) += 1
+    }
+
+    // Initialize S = nodes with zero in-degree
+    val zeroIn = mutable.Set.empty[Dag.Node] ++ allNodes.filter(n => inDegree(n) == 0)
+    val result = mutable.ListBuffer.empty[Dag.Node]
+
+    while (zeroIn.nonEmpty) {
+      val n = Random.shuffle(zeroIn.toList).head
+      zeroIn -= n
+      result += n
+
+      for (m <- edges.getOrElse(n, Set())) {
+        inDegree(m) -= 1
+        if (inDegree(m) == 0) zeroIn += m
+      }
+    }
+
+    // Check for cycle
+    if (result.size != allNodes.size)
+      throw InternalError("Graph has at least one cycle; topological sort not possible.")
+    else
+      Right(result.toList)
+  }
 
   /** Visualize the DAG using DOT format */
   def toDot: String = {
@@ -64,7 +107,7 @@ object Dag {
   /** Base trait for DAG nodes */
   sealed trait Node
 
-  /** Task node represents a port call */
+  /** Task node represents a port call invoked at a time point */
   case class TaskNode(endpoint: Connection.Endpoint, time: Time) extends Node
 
   /** Time node to mark release or finish time */

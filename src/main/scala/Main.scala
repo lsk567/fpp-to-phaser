@@ -112,6 +112,14 @@ object FPPToPhaser {
       }
 
       // Partition the schedule using a list scheduler.
+      sched <- Scheduler.schedule(dag, n=2, pa)
+      _ <- {
+        for ((s, i) <- sched.zipWithIndex) {
+          println(s"Schedule $i:")
+          println(s)
+        }
+        Right(())
+      }
 
       // Validate the schedule.
 

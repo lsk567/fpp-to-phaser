@@ -110,12 +110,12 @@ object FPPToPhaser {
 
       // Partition the schedule using a list scheduler,
       // and validate the schedule during the process.
-      sched <- Scheduler.schedule(pa.dag, n=2, pa, mapEntireRateGroup=true)
-      _ <- {
+      pa <- {
+        val sched = Scheduler.schedule(pa.dag, n=2, pa, mapEntireRateGroup=true).getOrElse(List.empty)
         val dot = pa.dag.toDotScheduled(sched)
         println("Writing dagS.dot to " + System.getProperty("user.dir"))
         Files.write(Paths.get("dagS.dot"), dot.getBytes(StandardCharsets.UTF_8))
-        Right(())
+        Right(pa.copy(schedule = sched))
       }
 
       // Generate phaser configurations.

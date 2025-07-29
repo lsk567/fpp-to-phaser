@@ -131,7 +131,7 @@ object Hyperperiod {
             if (calls != callsPrev) false
             else {
                 // Normalize both maps by shifting their time keys relative to their respective timestamps
-                def normalizeMap(baseTime: Time, map: Map[Time, Set[PortCall]]): Map[BigInt, Set[PortCall]] =
+                def normalizeMap(baseTime: Time, map: Map[Time, Set[PortCall]]): Map[Long, Set[PortCall]] =
                     map.map { case (time, callSet) => (time.toNanoseconds - baseTime.toNanoseconds) -> callSet }
 
                 val normM     = normalizeMap(t, m)

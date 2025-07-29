@@ -6,7 +6,7 @@ object PeriodParser extends RegexParsers {
 
   override def skipWhitespace = true
 
-  def number: Parser[BigInt] = "[0-9]+".r ^^ { s => BigInt(s) }
+  def number: Parser[Long] = "[0-9]+".r ^^ { s => s.toLong }
 
   def unit: Parser[String] = "(ms|us|ns)".r
 
@@ -29,7 +29,7 @@ object OffsetParser extends RegexParsers {
 
   override def skipWhitespace = true
 
-  def number: Parser[BigInt] = "[0-9]+".r ^^ { s => BigInt(s) }
+  def number: Parser[Long] = "[0-9]+".r ^^ { s => s.toLong }
 
   def unit: Parser[String] = "(ms|us|ns)".r
 
@@ -58,7 +58,7 @@ object DeadlineParser extends RegexParsers {
       s.replace("$", "")
     }
 
-  def number: Parser[BigInt] = "[0-9]+".r ^^ { s => BigInt(s) }
+  def number: Parser[Long] = "[0-9]+".r ^^ { s => s.toLong }
 
   def unit: Parser[String] = "(ms|us|ns)".r
 

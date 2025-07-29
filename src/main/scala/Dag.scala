@@ -66,8 +66,8 @@ class Dag(val edges: Map[Dag.Node, Set[Dag.Node]]) {
     for (node <- nodes) {
       val id = nodeIds(node)
       val label = node match {
-        case Dag.TaskNode(endpoint, time) =>
-          s"${endpoint.port} @ ${time.toNanoseconds}ns"
+        case Dag.TaskNode(task, time) =>
+          s"${task._1.port} @ ${time.toNanoseconds}ns"
         case Dag.TimeNode(time) =>
           s"time ${time.toNanoseconds}ns"
         case Dag.DummyNode(from, to) =>
@@ -121,8 +121,8 @@ class Dag(val edges: Map[Dag.Node, Set[Dag.Node]]) {
     for (node <- nodes) {
       val id = nodeIds(node)
       val label = node match {
-        case Dag.TaskNode(endpoint, time) =>
-          s"${endpoint.port} @ ${time.toNanoseconds}ns"
+        case Dag.TaskNode(task, time) =>
+          s"${task._1.port} @ ${time.toNanoseconds}ns"
         case Dag.TimeNode(time) =>
           s"time ${time.toNanoseconds}ns"
         case Dag.DummyNode(from, to) =>
@@ -200,7 +200,7 @@ object Dag {
   sealed trait Node
 
   /** Task node represents a port call invoked at a time point */
-  case class TaskNode(endpoint: Connection.Endpoint, time: Time) extends Node
+  case class TaskNode(task: Task, time: Time) extends Node
 
   /** Time node to mark release or finish time */
   case class TimeNode(time: Time) extends Node
@@ -252,7 +252,7 @@ object Dag {
           val tasks = taskMap.getOrElse(rg, Nil)
 
           // Create task nodes for each endpoint
-          val taskNodes = tasks.map { case (ep, _) => Dag.TaskNode(ep, time) }
+          val taskNodes = tasks.map { case task => Dag.TaskNode(task, time) }
 
           // Connect timeNode to the first task node, if any
           taskNodes.headOption.foreach { head =>

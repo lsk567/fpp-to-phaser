@@ -74,7 +74,7 @@ object Scheduler {
                     case ((sched, makespan, rg2part), node: Dag.TaskNode) => 
                         // Check which rate group this task belongs to,
                         // only needed when mapEntireRateGroup.
-                        val rg = endpointToInstance(node.endpoint)
+                        val rg = endpointToInstance(node.task._1)
                         // Choose a partition to assign the task to.
                         val index =
                             if (mapEntireRateGroup) then {
@@ -96,7 +96,7 @@ object Scheduler {
                         val startTime = Ordering[Time].max(node.time, makespan(index))
                         // Get the execution time of task. If none is given,
                         // assume it is 0.
-                        val execTime = a.deadlineMap.get(node.endpoint.port.toString) match {
+                        val execTime = a.deadlineMap.get(node.task._1.port.toString) match {
                             case Some(t) => t
                             case None => ZERO // FIXME: Check if this would result in really bad schedule.
                         }

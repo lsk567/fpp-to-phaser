@@ -119,6 +119,20 @@ object FPPToPhaser {
       }
 
       // Generate phaser configurations.
+      _ <- {
+        val dir = options.dir match {
+          case Some(dir1) => dir1
+          case None => "."
+        }
+        val state = CppWriterState(
+          a,
+          dir,
+          toolName = Some(name)
+        )
+        val cppDoc = PhaserConfigCppWriter(state, pa).write
+        CppWriter.writeCppDoc(state, cppDoc)
+        Right(())
+      }
 
     } yield ()
   }

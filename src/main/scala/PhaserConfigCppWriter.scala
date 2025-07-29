@@ -21,15 +21,31 @@ case class PhaserConfigCppWriter(
     }
 
     private def getMembers: List[CppDoc.Member] = {
-        List(
-            getConstructFn
-        )
+        List(getConfigureTopologyFn)
     }
 
-    private def getConstructFn: CppDoc.Member.Function = {
+    private def getConfigureTopologyFn: CppDoc.Member.Function = {
         val comment = s"Register phases for each partition."
-        val name = s"configure_phasers"
-        val body = pa.schedule.zipWithIndex.foldLeft(List.empty[Line]) {
+        val name = s"configureTopology"
+        
+        val preamble = List(
+            Line(s"// Linux timer period (tick): ${pa.tick}"),
+            Line(s"// Rate group driver needs a divisor list"),
+            Line(s"rateGroupDriverComp.configure(rateGroupDivisorsSet);")
+        )
+        val phase_conf = pa.schedule.zipWithIndex.foldLeft(List.empty[Line]) {
+            case (li, (partition, pIndex)) => {
+                val phaserCycles = Time.ratio(
+                    pa.hyperperiod._3,
+                    pa.tick
+                )
+                li ++ List(
+                    Line(s"// Use $phaserCycles ticks for a hyperperiod of ${pa.hyperperiod._3}"),
+                    Line(s"phaser_$pIndex.configure($phaserCycles);")
+                )
+            }
+        }
+        val phase_regs = pa.schedule.zipWithIndex.foldLeft(List.empty[Line]) {
             case (li, (partition, pIndex)) => {
                 // For each call within a partition,
                 // generate a registration.
@@ -52,6 +68,7 @@ case class PhaserConfigCppWriter(
                 li ++ regs
             }
         }
+        val body = preamble ++ phase_conf ++ phase_regs
         getFnMember(
             comment,
             name,

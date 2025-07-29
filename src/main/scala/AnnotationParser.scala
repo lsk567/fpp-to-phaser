@@ -52,7 +52,11 @@ object DeadlineParser extends RegexParsers {
 
   override def skipWhitespace = true
 
-  def qualifiedName: Parser[String] = """[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+""".r
+  /** Matches $ but discards it in the resulting string, as specified in FPP. */
+  def qualifiedName: Parser[String] =
+    """[A-Za-z_\$][A-Za-z0-9_\$]*(\.[A-Za-z_\$][A-Za-z0-9_\$]*)+""".r ^^ { s =>
+      s.replace("$", "")
+    }
 
   def number: Parser[BigInt] = "[0-9]+".r ^^ { s => BigInt(s) }
 

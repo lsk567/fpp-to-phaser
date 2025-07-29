@@ -208,6 +208,8 @@ object Dag {
   /** Dummy node to represent a time interval between time nodes */
   case class DummyNode(from: Time, to: Time) extends Node
 
+  def empty: Dag = new Dag(Map.empty)
+
   /**
     * Construct a Dag from a hyperperiod trace.
     *
@@ -215,10 +217,12 @@ object Dag {
     * @param idx The starting index of the repeating hyperperiod.
     */
   def fromHyperperiod(
-    analysis: PhaserAnalysis,
-    hp: List[Hyperperiod.Step],
-    idx: Int
+    taskMap: TaskMap,
+    hyperperiod: Hyperperiod.Hyperperiod,
   ): Dag = {
+
+    // Destructure into steps and recurrence index.
+    val (hp, idx, interval) = hyperperiod
 
     // FIXME: Check for idx != 1
     // Currently we assume that there is no initialization phase.
@@ -245,7 +249,7 @@ object Dag {
       if (stepIdx != steps.length - 1) {
         for (rg <- rateGroups) {
           // Lookup task list for this rate group
-          val tasks = analysis.taskMap.getOrElse(rg, Nil)
+          val tasks = taskMap.getOrElse(rg, Nil)
 
           // Create task nodes for each endpoint
           val taskNodes = tasks.map { case (ep, _) => Dag.TaskNode(ep, time) }

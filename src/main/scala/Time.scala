@@ -1,6 +1,6 @@
 package fpp.compiler.analysis
 
-sealed trait Time {
+sealed trait Time extends Ordered[Time] {
   def toNanoseconds: BigInt
   def toNS: Time = Time.fromNanoseconds(this.toNanoseconds)
 
@@ -13,6 +13,9 @@ sealed trait Time {
   }
   
   override def hashCode(): Int = toNanoseconds.hashCode()
+
+  override def compare(that: Time): Int =
+    this.toNanoseconds.compare(that.toNanoseconds)
 }
 
 case class MS(value: BigInt) extends Time {

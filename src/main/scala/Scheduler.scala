@@ -63,16 +63,13 @@ object Scheduler {
             a.taskMap.flatMap { case (rg, list) => list.map { case (ep, _) => ep -> rg } }
 
         for {
+            // Generate a topological sort.
             sort: List[Dag.Node] <- dag.randomTopologicalSort
-            _ <- {
-                println("topological sort:")
-                println(sort)
-                Right(())
-            }
-            sched <- {
+            // Run list scheduling algorithm.
+            pair <- {
                 // Keep track of the makespans of all partitions.
                 // Assign task to a partition with the min makespan.
-                val (reversedSchedule, _, _) = sort.foldLeft(
+                val (reversedSchedule, fullMakespan, _) = sort.foldLeft(
                     (schedInit, makespanInit, rateGroupToPartitionInit)) {
                     case ((sched, makespan, rg2part), node: Dag.TaskNode) => 
                         // Check which rate group this task belongs to,
@@ -115,7 +112,30 @@ object Scheduler {
                 // Since nodes are prepended, reverse the list
                 // to get the correct order.
                 val schedule = reversedSchedule.map(li => li.reverse)
-                Right(schedule)
+                Right((schedule, fullMakespan))
+            }
+            (sched, makespan) = pair
+            _ <- {
+                for ((s, i) <- sched.zipWithIndex) {
+                    println(s"Schedule $i:")
+                    println(s)
+                }
+                Right(())
+            }
+            // Validate makespan.
+            _ <- {
+                val bound = a.hyperperiod._3
+                val violations = makespan.zipWithIndex.filter { case (ms, _) => ms >= bound }
+
+                if (violations.isEmpty) {
+                    Right(())
+                } else {
+                    val details = violations.map { case (ms, idx) =>
+                    s"Partition $idx: makespan=$ms (bound=$bound)"
+                    }.mkString("\n")
+
+                    throw InternalError(s"The schedule does not fit within bound $bound.\nViolations:\n$details")
+                }
             }
         } yield sched
     }

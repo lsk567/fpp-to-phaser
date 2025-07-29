@@ -15,6 +15,14 @@ object Hyperperiod {
       */
     type Step = (Time, Set[PortCall], Map[Time, Set[PortCall]])
 
+    /** 
+     * A hyperperiod is a sequence of steps, an integer
+     * representing the index of a prior step that matches
+     * the last step, ie., where the hyperperiod recurs,
+     * and a time interval for the duration of an iteration.
+     */
+    type Hyperperiod = (List[Step], Int, Time)
+
     /**
       * Find initial offsets of all rate groups, and add them
       * to the step's future port call map.
@@ -55,12 +63,13 @@ object Hyperperiod {
     )(
         next: (PhaserAnalysis, Step) => Step,
         hpCheck: (Step, List[Step]) => Option[Int]
-    ): (List[Step], Int) = {
+    ): Hyperperiod = {
         hpCheck(current, trace) match {
             case Some(index) =>
                 // Reverse the trace at the end since current steps
                 // are added to the front of the list.
-                ((current :: trace).reverse, index)
+                val fullTrace = (current :: trace).reverse
+                (fullTrace, index, current._1 - fullTrace(index)._1)
             case None =>
                 solve(analysis, next(analysis, current), current :: trace)(next, hpCheck)
         }
@@ -140,8 +149,8 @@ object Hyperperiod {
         }
     }
     
-    def toDot(hyperperiod: (List[Step], Int)): String = {
-        val (trace, recurIndex) = hyperperiod
+    def toDot(hyperperiod: Hyperperiod): String = {
+        val (trace, recurIndex, interval) = hyperperiod
         val sb = new StringBuilder
         sb ++= "digraph Hyperperiod {\n"
         sb ++= "  rankdir=LR;\n"

@@ -51,7 +51,7 @@ case class PhaserConfigCppWriter(
                 // generate a registration.
                 val regs = partition.zipWithIndex.foldLeft(List.empty[Line]) {
                     case (l, (taskNode, cIndex)) => {
-                        val outputChannel = taskNode.task._2
+                        val phaserOutputChannel = pa.phaserPortMaps(pIndex)(taskNode.task)
                         val port = taskNode.task._1.port.toString
                         val execTime = pa.deadlineMap.get(port)
                         val numTicks: String = execTime match {
@@ -61,7 +61,7 @@ case class PhaserConfigCppWriter(
                         l ++ List(
                             Line(s"// Partition $pIndex, phase $cIndex:"),
                             Line(s"// Calling port $port, time bound $execTime (ticks: $numTicks)"),
-                            Line(s"phaser_$pIndex.register_phased($outputChannel, $numTicks);")
+                            Line(s"phaser_$pIndex.register_phased($phaserOutputChannel, $numTicks);")
                         )
                     }
                 }

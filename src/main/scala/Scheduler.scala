@@ -123,6 +123,7 @@ object Scheduler {
                 Right(())
             }
             // Validate makespan.
+            // FIXME: This does not check intermediate deadlines from rate group periods.
             _ <- {
                 val bound = a.hyperperiod._3
                 val violations = makespan.zipWithIndex.filter { case (ms, _) => ms >= bound }
@@ -138,5 +139,32 @@ object Scheduler {
                 }
             }
         } yield sched
+    }
+
+    /**
+      * Based on the partitioned schedule, create a map for each phaser
+      * that maps a task assigned to the phaser to an output port in
+      * the order of the scheduled port calls.
+      *
+      * @param sched
+      */
+    def assignPhaserPorts(sched: Schedule): List[Map[Task, Int]] = {
+        val list = sched.foldLeft(List.empty[Map[Task, Int]]) {
+            (li, partition) => {
+                // Follow the schedule and map each task to its index in the schedule.
+                val phaserPortMap = partition.zipWithIndex.foldLeft(Map.empty[Task, Int]) {
+                    case (m, (taskNode, taskIndex)) =>
+                        // If the task already has a port from its prior invocation,
+                        // do not overwrite it with another taskIndex, which destroys
+                        // the linear port assignment in the map.
+                        m.get(taskNode.task) match {
+                            case Some(idx) => m
+                            case None => m + (taskNode.task -> taskIndex)
+                        }
+                }
+                phaserPortMap :: li
+            }
+        }
+        list.reverse
     }
 }

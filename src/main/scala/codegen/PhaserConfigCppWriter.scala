@@ -41,7 +41,7 @@ case class PhaserConfigCppWriter(
                 )
                 li ++ List(
                     Line(s"// Use $phaserCycles ticks for a hyperperiod of ${pa.hyperperiod._3}"),
-                    Line(s"phaser_$pIndex.configure($phaserCycles);")
+                    Line(s"phaser$pIndex.configure($phaserCycles);")
                 )
             }
         }
@@ -62,7 +62,7 @@ case class PhaserConfigCppWriter(
                         l ++ List(
                             Line(s"// Partition $pIndex, phase $cIndex:"),
                             Line(s"// Calling port $port released at ${taskNode.time}, time bound $execTime (ticks: $numTicks)"),
-                            Line(s"phaser_$pIndex.register_phased($phaserOutputChannel, $numTicks, $startCycle);")
+                            Line(s"phaser$pIndex.register_phased($phaserOutputChannel, $numTicks, $startCycle);")
                         )
                     }
                 }

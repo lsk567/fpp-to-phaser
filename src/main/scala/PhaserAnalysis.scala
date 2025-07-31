@@ -32,5 +32,7 @@ case class PhaserAnalysis(
     // This can only be populated after a schedule is obtained.
     phaserPortMaps: List[Map[Task, Int]] = List(),
     // Linux timer (tick) period
-    tick: Time = MS(1)
+    tick: Time = MS(1),
+    // Number of phasers
+    n: Int = 2
 )

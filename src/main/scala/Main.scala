@@ -111,7 +111,7 @@ object FPPToPhaser {
       // Partition the schedule using a list scheduler,
       // and validate the schedule during the process.
       pa <- {
-        val sched = Scheduler.schedule(pa.dag, n=2, pa, mapEntireRateGroup=true).getOrElse(List.empty)
+        val sched = Scheduler.schedule(pa.dag, n=pa.n, pa, mapEntireRateGroup=true).getOrElse(List.empty)
         val phaserPortMaps = Scheduler.assignPhaserPorts(sched)
         println(s"phaserPortMaps: $phaserPortMaps")
         val dot = pa.dag.toDotScheduled(sched)
@@ -131,8 +131,11 @@ object FPPToPhaser {
           dir,
           toolName = Some(name)
         )
+        // Generate phaser config.
         val cppDoc = PhaserConfigCppWriter(state, pa).write
         CppWriter.writeCppDoc(state, cppDoc)
+        // Generate phaser instance FPP.
+        PhaserInstanceFppWriter(state, pa).write
         Right(())
       }
 

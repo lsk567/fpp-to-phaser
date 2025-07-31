@@ -58,10 +58,11 @@ case class PhaserConfigCppWriter(
                             case Some(t) => Time.ratio(t, pa.tick).toString
                             case None => "DONT_CARE"
                         }
+                        val startCycle = Time.ratio(taskNode.time, pa.tick)
                         l ++ List(
                             Line(s"// Partition $pIndex, phase $cIndex:"),
-                            Line(s"// Calling port $port, time bound $execTime (ticks: $numTicks)"),
-                            Line(s"phaser_$pIndex.register_phased($phaserOutputChannel, $numTicks);")
+                            Line(s"// Calling port $port released at ${taskNode.time}, time bound $execTime (ticks: $numTicks)"),
+                            Line(s"phaser_$pIndex.register_phased($phaserOutputChannel, $numTicks, $startCycle);")
                         )
                     }
                 }

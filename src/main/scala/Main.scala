@@ -134,8 +134,9 @@ object FPPToPhaser {
         // Generate phaser config.
         val cppDoc = PhaserConfigCppWriter(state, pa).write
         CppWriter.writeCppDoc(state, cppDoc)
-        // Generate phaser instance FPP.
-        PhaserInstanceFppWriter(state, pa).write
+        // Generate phaser FPP files.
+        PhaserInstanceFppWriter(state, pa).writeInstance
+        PhaserInstanceFppWriter(state, pa).writeConnections
         Right(())
       }
 

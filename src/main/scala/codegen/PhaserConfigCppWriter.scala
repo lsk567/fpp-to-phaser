@@ -49,24 +49,27 @@ case class PhaserConfigCppWriter(
             case (li, (partition, pIndex)) => {
                 // For each call within a partition,
                 // generate a registration.
-                val regs = partition.zipWithIndex.foldLeft(List.empty[Line]) {
-                    case (l, (taskNode, cIndex)) => {
+                val regs: (List[Line], Long) = partition.zipWithIndex.foldLeft((List.empty[Line], 0L)) {
+                    case ((l, lastStartCycle), (taskNode, cIndex)) => {
                         val phaserOutputChannel = pa.phaserPortMaps(pIndex)(taskNode.task)
                         val port = taskNode.task._1.port.toString
                         val execTime = pa.deadlineMap.get(port)
                         val numTicks: String = execTime match {
                             case Some(t) => Time.ratio(t, pa.tick).toString
-                            case None => "DONT_CARE"
+                            case None => "Svc::ActivePhaser::DONT_CARE"
                         }
                         val startCycle = Time.ratio(taskNode.time, pa.tick)
-                        l ++ List(
+                        // Make sure a new start time is only specified once. After this, use DONT_CARE, otherwise
+                        // the phaser complains.
+                        val startCycleStr: String = if (startCycle > lastStartCycle) then startCycle.toString else "Svc::ActivePhaser::DONT_CARE"
+                        (l ++ List(
                             Line(s"// Partition $pIndex, phase $cIndex:"),
                             Line(s"// Calling port $port released at ${taskNode.time}, time bound $execTime (ticks: $numTicks)"),
-                            Line(s"phaser$pIndex.register_phased($phaserOutputChannel, $numTicks, $startCycle);")
-                        )
+                            Line(s"phaser$pIndex.register_phased($phaserOutputChannel, $numTicks, $startCycleStr);")
+                        ), startCycle)
                     }
                 }
-                li ++ regs
+                li ++ regs._1
             }
         }
         val body = preamble ++ phase_conf ++ phase_regs

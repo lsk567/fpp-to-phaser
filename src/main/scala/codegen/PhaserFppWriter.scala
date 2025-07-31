@@ -3,7 +3,7 @@ package fpp.compiler.codegen
 import fpp.compiler.analysis._
 import fpp.compiler.util._
 
-case class PhaserInstanceFppWriter(
+case class PhaserFppWriter(
     s: CppWriterState,
     pa: PhaserAnalysis,
 ) extends LineUtils {

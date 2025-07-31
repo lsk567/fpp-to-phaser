@@ -266,7 +266,7 @@ object Dag {
             edges.getOrElseUpdate(from, scala.collection.mutable.Set.empty) += to
           }
 
-          // Add deadline edge: last task node of previous firing → this time node
+          // Add deadline edge: last task node of previous firing -> this time node
           lastTaskByRateGroup.get(rg).foreach { prevTask =>
             edges.getOrElseUpdate(prevTask, scala.collection.mutable.Set.empty) += timeNode
           }
@@ -280,7 +280,7 @@ object Dag {
       prevTimeNode.foreach { prev =>
         val dummy = Dag.DummyNode(prev.time, time)
 
-        // Do not reuse dummy nodes — always insert new one per pair
+        // Do not reuse dummy nodes - always insert new one per pair
         edges.getOrElseUpdate(prev, scala.collection.mutable.Set.empty) += dummy
         edges.getOrElseUpdate(dummy, scala.collection.mutable.Set.empty) += timeNode
       }
